@@ -1,0 +1,19 @@
+{
+	"ImportPath": "github.com/ysugimoto/signalingo",
+	"GoVersion": "go1.3.1",
+	"Deps": [
+		{
+			"ImportPath": "github.com/Sirupsen/logrus",
+			"Comment": "v0.6.4-13-g0b189e0",
+			"Rev": "0b189e019aabcec0af8e433b10b3073ad9382b44"
+		},
+		{
+			"ImportPath": "github.com/satori/go.uuid",
+			"Rev": "db382514f4efd4cdc879e1ec41d2d598d80f200f"
+		},
+		{
+			"ImportPath": "golang.org/x/net/websocket",
+			"Rev": "c84eff7014eba178f68bd4c05b86780efe0fbf35"
+		}
+	]
+}
