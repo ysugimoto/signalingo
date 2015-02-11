@@ -13,7 +13,7 @@ type Answer struct {
 
 func NewAnswerMessage(from, sdp string, extra map[string]string) ([]byte, error) {
 	answer := Answer{
-		Type:   CONNECTED,
+		Type:   ANSWER,
 		Sender: from,
 		Sdp:    sdp,
 		Extra:  extra,

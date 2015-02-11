@@ -11,7 +11,7 @@ type Disconnect struct {
 
 func NewDisconnectMessage(userId string) ([]byte, error) {
 	disconnect := Disconnect{
-		Type: CONNECTED,
+		Type: DISCONNECTED,
 		User: userId,
 	}
 

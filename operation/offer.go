@@ -13,7 +13,7 @@ type Offer struct {
 
 func NewOfferMessage(from, sdp string, extra map[string]string) ([]byte, error) {
 	offer := Offer{
-		Type:   CONNECTED,
+		Type:   OFFER,
 		Sender: from,
 		Sdp:    sdp,
 		Extra:  extra,

@@ -18,9 +18,15 @@ func NewManager() *Manager {
 	}
 }
 
-func (m *Manager) GetAllUsers() (users []string) {
+func (m *Manager) GetAllUsers() (users []operation.Users) {
 	for _, conn := range m.connections {
-		users = append(users, conn.UUID)
+		if conn.Closed {
+			continue
+		}
+		users = append(users, operation.Users{
+			UUID:   conn.UUID,
+			Locked: conn.Locked,
+		})
 	}
 	return
 }
@@ -28,6 +34,7 @@ func (m *Manager) GetAllUsers() (users []string) {
 func (m *Manager) AddConnection(conn *Connection) bool {
 	if _, ok := m.connections[conn.UUID]; !ok {
 		m.connections[conn.UUID] = conn
+		m.SendConnect(conn.UUID)
 		return true
 	}
 
@@ -38,6 +45,7 @@ func (m *Manager) AddConnection(conn *Connection) bool {
 func (m *Manager) RemoveConnection(conn *Connection) bool {
 	if _, ok := m.connections[conn.UUID]; ok {
 		delete(m.connections, conn.UUID)
+		m.SendDisconnect(conn.UUID)
 		return true
 	}
 	return false

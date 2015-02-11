@@ -11,7 +11,7 @@ type Unlock struct {
 
 func NewUnlockMessage(userId string) ([]byte, error) {
 	unlock := Unlock{
-		Type: CONNECTED,
+		Type: UNLOCK,
 		User: userId,
 	}
 

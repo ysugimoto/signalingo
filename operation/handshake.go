@@ -5,14 +5,14 @@ import (
 )
 
 type Handshake struct {
-	Type  string   `json:"type"`
-	UUID  string   `json:"uuid"`
-	Users []string `json:"users"`
+	Type  string  `json:"type"`
+	UUID  string  `json:"uuid"`
+	Users []Users `json:"users"`
 }
 
-func NewHandshakeMessage(userId string, users []string) ([]byte, error) {
+func NewHandshakeMessage(userId string, users []Users) ([]byte, error) {
 	handshake := Handshake{
-		Type:  CONNECTED,
+		Type:  HANDSHAKE,
 		UUID:  userId,
 		Users: users,
 	}

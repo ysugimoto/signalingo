@@ -11,7 +11,7 @@ type Lock struct {
 
 func NewLockMessage(userId string) ([]byte, error) {
 	lock := Lock{
-		Type: CONNECTED,
+		Type: LOCK,
 		User: userId,
 	}
 

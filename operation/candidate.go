@@ -12,7 +12,7 @@ type Candidate struct {
 
 func NewCandidateMessage(from, candidate string) ([]byte, error) {
 	c := Candidate{
-		Type:      CONNECTED,
+		Type:      CANDIDATE,
 		Candidate: candidate,
 		Sender:    from,
 	}
