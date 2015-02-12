@@ -9,6 +9,7 @@ import (
 type Env struct {
 	Server ServerEnv `toml:"server"`
 	Hook   HookEnv   `toml:"webhook"`
+	Log    LogEnv    `toml:"log"`
 }
 
 type ServerEnv struct {
@@ -21,10 +22,13 @@ type ServerEnv struct {
 }
 
 type HookEnv struct {
-	Host string `toml:"host"`
-	Port int    `toml:"port"`
-	Path string `toml:"path"`
-	Tls  bool   `toml:"tls"`
+	Url string `toml:"url"`
+}
+
+type LogEnv struct {
+	Type     string `toml:"type"`
+	Filepath string `toml:"filepath"`
+	Level    string `toml:"level"`
 }
 
 func InitEnv(path string) Env {
@@ -38,6 +42,6 @@ func InitEnv(path string) Env {
 		}
 	}
 
-	fmt.Printf("%v\n", env)
+	//fmt.Printf("%v\n", env)
 	return env
 }

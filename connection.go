@@ -13,23 +13,41 @@ type Connection struct {
 	Conn   *websocket.Conn
 	Closed bool
 	Locked bool
+	Extra  map[string]string
 }
 
 var manager = NewManager()
 
-func NewWebSocketConnectionHandler() websocket.Handler {
+func NewWebSocketConnectionHandler(env Env) websocket.Handler {
 	return websocket.Handler(func(ws *websocket.Conn) {
 		client := NewConnection(ws)
 
 		// Handshake message
 		// Wait a few seconds
-		if msg, err := operation.NewHandshakeMessage(client.UUID, manager.GetAllUsers()); err == nil {
-			if err := client.Send(msg); err != nil {
-				log.Println("Handshake send failed")
-			} else {
-				log.Printf("UUID: %s handshake", client.UUID)
-			}
+		if msg, err := operation.NewHandshakeMessage(client.UUID, client.Extra, manager.GetAllUsers()); err == nil {
 
+			// Does need hook?
+			if env.Hook.Url == "" {
+				if err := client.Send(msg); err != nil {
+					log.Println("Handshake send failed")
+				} else {
+					log.Printf("UUID: %s handshake", client.UUID)
+				}
+			} else {
+				hook := NewHook(env.Hook.Url, client.Extra)
+				hook.Run()
+				resp := <-hook.Resp
+				if resp == 0 {
+					if err := client.Send(msg); err != nil {
+						log.Println("Handshake send failed")
+					} else {
+						log.Printf("UUID: %s handshake", client.UUID)
+					}
+				} else {
+					client.Close()
+					return
+				}
+			}
 		}
 
 		manager.AddConnection(client)
@@ -57,12 +75,20 @@ func NewWebSocketConnectionHandler() websocket.Handler {
 }
 
 func NewConnection(ws *websocket.Conn) *Connection {
+	query := ws.Request().URL.Query()
+	extra := make(map[string]string)
+	for key, value := range query {
+		extra[key] = value[0]
+	}
+
 	return &Connection{
 		UUID:   uuid.NewV4().String(),
 		Conn:   ws,
 		Closed: false,
 		Locked: false,
+		Extra:  extra,
 	}
+
 }
 
 func (c *Connection) Send(message []byte) (err error) {
