@@ -24,7 +24,7 @@ func NewWebSocketConnectionHandler(env Env) websocket.Handler {
 
 		// Handshake message
 		// Wait a few seconds
-		if msg, err := operation.NewHandshakeMessage(client.UUID, client.Extra, manager.GetAllUsers()); err == nil {
+		if msg, err := operation.NewHandshakeMessage(client.UUID, manager.GetAllUsers()); err == nil {
 
 			// Does need hook?
 			if env.Hook.Url == "" {

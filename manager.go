@@ -26,6 +26,7 @@ func (m *Manager) GetAllUsers() (users []operation.Users) {
 		users = append(users, operation.Users{
 			UUID:   conn.UUID,
 			Locked: conn.Locked,
+			Extra:  conn.Extra,
 		})
 	}
 	return
