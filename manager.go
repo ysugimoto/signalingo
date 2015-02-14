@@ -3,58 +3,91 @@ package signaling
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/ysugimoto/signalingo/connection"
+	"github.com/ysugimoto/signalingo/env"
 	"github.com/ysugimoto/signalingo/operation"
+	"github.com/ysugimoto/signalingo/storage"
 	"log"
 	"strings"
 )
 
 type Manager struct {
-	connections map[string]*Connection
+	storage storage.Storage
 }
 
-func NewManager() *Manager {
+func NewManager(env env.Env) *Manager {
+	var st storage.Storage
+
+	switch env.Storage.Type {
+	case "memory":
+		st = storage.NewMapStorage()
+	case "redis":
+		st = storage.NewRedisStorage(env.Redis.Host, env.Redis.Port)
+	}
 	return &Manager{
-		connections: map[string]*Connection{},
+		storage: st,
 	}
 }
 
 func (m *Manager) GetAllUsers() (users []operation.Users) {
-	for _, conn := range m.connections {
+	connections := m.storage.GetAll()
+	for _, conn := range connections {
 		if conn.Closed {
 			continue
 		}
+
+		fmt.Printf("%v\n", conn)
 		users = append(users, operation.Users{
 			UUID:   conn.UUID,
 			Locked: conn.Locked,
 			Extra:  conn.Extra,
 		})
 	}
+
 	return
 }
 
-func (m *Manager) AddConnection(conn *Connection) bool {
-	if _, ok := m.connections[conn.UUID]; !ok {
-		m.connections[conn.UUID] = conn
+func (m *Manager) AddConnection(conn *connection.Connection) (ok bool) {
+	if ok = m.storage.Add(conn.UUID, conn); ok {
 		m.SendConnect(conn.UUID)
-		return true
 	}
 
-	return false
-
+	return
 }
 
-func (m *Manager) RemoveConnection(conn *Connection) bool {
-	if _, ok := m.connections[conn.UUID]; ok {
-		delete(m.connections, conn.UUID)
+func (m *Manager) CloseConnection(conn *connection.Connection) (ok bool) {
+	if ok = m.storage.Remove(conn.UUID); ok {
+		conn.Close()
 		m.SendDisconnect(conn.UUID)
-		return true
 	}
-	return false
+
+	return ok
 }
 
 func (m *Manager) Send(message []byte, to string) (err error) {
-	if conn, ok := m.connections[to]; ok {
+	if conn, ok := m.storage.Get(to); ok {
 		return conn.Send(message)
+	}
+
+	return nil
+}
+
+func (m *Manager) Broadcast(message []byte) (err error) {
+	connections := m.storage.GetAll()
+	for _, conn := range connections {
+		return conn.Send(message)
+	}
+
+	return nil
+}
+
+func (m *Manager) BroadcastIgnore(message []byte, id string) (err error) {
+	connections := m.storage.GetAll()
+	for _, conn := range connections {
+		if conn.UUID == id {
+			continue
+		}
+		conn.Send(message)
 	}
 
 	return nil
@@ -69,25 +102,27 @@ func (m *Manager) HandleMessage(msg string) {
 
 	switch op.Type {
 	case operation.LOCK:
-		if conn, ok := m.connections[op.Sender]; ok {
+		if conn, ok := m.storage.Get(op.Sender); ok {
 			if conn.Locked {
 				m.SendError(op.Sender, operation.LOCK_ERROR, "You have already locked")
 			} else {
 				conn.Locked = true
+				m.storage.Set(op.Sender, conn)
 				m.SendLock(op.Sender)
 			}
 		}
 	case operation.UNLOCK:
-		if conn, ok := m.connections[op.Sender]; !ok {
+		if conn, ok := m.storage.Get(op.Sender); ok {
 			if !conn.Locked {
 				m.SendError(op.Sender, operation.UNLOCK_ERROR, "You have not locked yet")
 			} else {
 				conn.Locked = false
+				m.storage.Set(op.Sender, conn)
 				m.SendUnlock(op.Sender)
 			}
 		}
 	case operation.OFFER:
-		if conn, ok := m.connections[op.Target]; !ok {
+		if conn, ok := m.storage.Get(op.Target); !ok {
 			m.SendError(op.Sender, operation.USER_NOTFOUND, "User not found")
 		} else {
 			if conn.Locked {
@@ -97,7 +132,7 @@ func (m *Manager) HandleMessage(msg string) {
 			}
 		}
 	case operation.ANSWER:
-		if conn, ok := m.connections[op.Target]; !ok {
+		if conn, ok := m.storage.Get(op.Target); !ok {
 			m.SendError(op.Sender, operation.USER_NOTFOUND, "User not found")
 		} else {
 			if conn.Locked {
@@ -107,7 +142,7 @@ func (m *Manager) HandleMessage(msg string) {
 			}
 		}
 	case operation.CANDIDATE:
-		if _, ok := m.connections[op.Target]; !ok {
+		if _, ok := m.storage.Get(op.Target); !ok {
 			m.SendError(op.Sender, operation.USER_NOTFOUND, "User not found")
 		} else {
 			m.SendCandidate(op.Sender, op.Target, op.Candidate)
@@ -175,23 +210,4 @@ func (m *Manager) SendCandidate(from, to, candidate string) {
 	} else if err = m.BroadcastIgnore(msg, to); err != nil {
 		log.Printf("%v\n", err)
 	}
-}
-
-func (m *Manager) Broadcast(message []byte) (err error) {
-	for _, conn := range m.connections {
-		return conn.Send(message)
-	}
-
-	return nil
-}
-
-func (m *Manager) BroadcastIgnore(message []byte, id string) (err error) {
-	for _, conn := range m.connections {
-		if conn.UUID == id {
-			continue
-		}
-		conn.Send(message)
-	}
-
-	return nil
 }

@@ -5,12 +5,13 @@ import (
 	"github.com/ysugimoto/go-cliargs"
 	"github.com/ysugimoto/husky"
 	"github.com/ysugimoto/signalingo"
+	"github.com/ysugimoto/signalingo/env"
 	"io/ioutil"
 	"os"
 )
 
 func main() {
-	env := signaling.InitEnv("")
+	env := env.InitEnv("")
 	args := cliarg.NewArguments()
 	args.Alias("h", "host", env.Server.Host)
 	args.Alias("p", "port", env.Server.Port)

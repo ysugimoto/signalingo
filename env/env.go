@@ -1,4 +1,4 @@
-package signaling
+package env
 
 import (
 	"fmt"
@@ -7,9 +7,11 @@ import (
 )
 
 type Env struct {
-	Server ServerEnv `toml:"server"`
-	Hook   HookEnv   `toml:"webhook"`
-	Log    LogEnv    `toml:"log"`
+	Server  ServerEnv  `toml:"server"`
+	Hook    HookEnv    `toml:"webhook"`
+	Log     LogEnv     `toml:"log"`
+	Storage StorageEnv `toml:"storage"`
+	Redis   RedisEnv   `toml:"redis"`
 }
 
 type ServerEnv struct {
@@ -29,6 +31,15 @@ type LogEnv struct {
 	Type     string `toml:"type"`
 	Filepath string `toml:"filepath"`
 	Level    string `toml:"level"`
+}
+
+type StorageEnv struct {
+	Type string `toml:"type"`
+}
+
+type RedisEnv struct {
+	Host string `toml:"host"`
+	Port int    `toml:"port"`
 }
 
 func InitEnv(path string) Env {

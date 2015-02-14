@@ -12,8 +12,9 @@ type Handshake struct {
 
 func NewHandshakeMessage(userId string, users []Users) ([]byte, error) {
 	handshake := Handshake{
-		Type: HANDSHAKE,
-		UUID: userId,
+		Type:  HANDSHAKE,
+		UUID:  userId,
+		Users: users,
 	}
 
 	return json.Marshal(handshake)
