@@ -29,6 +29,11 @@ func NewRedisStorage(host string, port int) *RedisStorage {
 	}
 }
 
+func (r *RedisStorage) Purge() {
+	defer r.conn.Close()
+	r.conn.Do("FLUSHALL")
+}
+
 func (r *RedisStorage) Add(key string, conn *connection.Connection) bool {
 	if _, ok := r.set[key]; ok {
 		log.Printf("Redis add storage error: connection duplicate %s", key)
@@ -80,6 +85,10 @@ func (r *RedisStorage) Get(key string) (*connection.Connection, bool) {
 	var conn connection.Connection
 	if err := redis.ScanStruct(value, &conn); err != nil {
 		log.Printf("Redis storage error: %v\n", err)
+		return nil, false
+	}
+
+	if conn.IsAdmin {
 		return nil, false
 	}
 

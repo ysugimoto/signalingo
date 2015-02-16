@@ -18,6 +18,10 @@ func NewMapStorage() *MapStorage {
 	}
 }
 
+func (m *MapStorage) Purge() {
+	m.data = nil
+}
+
 func (m *MapStorage) Add(key string, conn *connection.Connection) bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -59,7 +63,9 @@ func (m *MapStorage) Get(key string) (*connection.Connection, bool) {
 	defer m.mu.Unlock()
 
 	if conn, ok := m.data[key]; !ok {
-		return conn, true
+		if !conn.IsAdmin {
+			return conn, true
+		}
 	}
 
 	return nil, false
@@ -70,7 +76,9 @@ func (m *MapStorage) GetAll() (connections []*connection.Connection) {
 	defer m.mu.Unlock()
 
 	for _, conn := range m.data {
-		connections = append(connections, conn)
+		if !conn.IsAdmin {
+			connections = append(connections, conn)
+		}
 	}
 	return connections
 }

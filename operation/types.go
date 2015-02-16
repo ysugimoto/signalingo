@@ -5,6 +5,7 @@ const (
 	HANDSHAKE    = "handshake"
 	CONNECTED    = "connect"
 	DISCONNECTED = "disconnect"
+	SHUTDOWN     = "shutdown"
 	LOCK         = "lock"
 	UNLOCK       = "unlock"
 	OFFER        = "offser"

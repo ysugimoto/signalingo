@@ -7,26 +7,23 @@ import (
 )
 
 type Connection struct {
-	UUID   string          `redis:"uuid"`
-	Conn   *websocket.Conn `redis:"-"`
-	Closed bool            `redis:"closed"`
-	Locked bool            `redis:"locked"`
-	Extra  string          `redis:"extra"`
+	UUID    string          `redis:"uuid"`
+	Conn    *websocket.Conn `redis:"-"`
+	Closed  bool            `redis:"closed"`
+	Locked  bool            `redis:"locked"`
+	Extra   string          `redis:"extra"`
+	IsAdmin bool            `redis:"-"`
 }
 
-func NewConnection(ws *websocket.Conn) *Connection {
+func NewConnection(ws *websocket.Conn, admin bool) *Connection {
 	query := ws.Request().URL.RawQuery
-	//extra := make(map[string]string)
-	//for key, value := range query {
-	//	extra[key] = value[0]
-	//}
-
 	return &Connection{
-		UUID:   uuid.NewV4().String(),
-		Conn:   ws,
-		Closed: false,
-		Locked: false,
-		Extra:  query,
+		UUID:    uuid.NewV4().String(),
+		Conn:    ws,
+		Closed:  false,
+		Locked:  false,
+		Extra:   query,
+		IsAdmin: admin,
 	}
 
 }

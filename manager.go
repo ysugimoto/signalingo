@@ -29,10 +29,25 @@ func NewManager(env env.Env) *Manager {
 	}
 }
 
-func (m *Manager) GetAllUsers() (users []operation.Users) {
+func (m *Manager) Purge() {
 	connections := m.storage.GetAll()
 	for _, conn := range connections {
 		if conn.Closed {
+			continue
+		}
+
+		conn.Close()
+	}
+
+	m.storage.Purge()
+
+	return
+}
+
+func (m *Manager) GetAllUsers() (users []operation.Users) {
+	connections := m.storage.GetAll()
+	for _, conn := range connections {
+		if conn.Closed || conn.IsAdmin {
 			continue
 		}
 
@@ -48,7 +63,7 @@ func (m *Manager) GetAllUsers() (users []operation.Users) {
 }
 
 func (m *Manager) AddConnection(conn *connection.Connection) (ok bool) {
-	if ok = m.storage.Add(conn.UUID, conn); ok {
+	if ok = m.storage.Add(conn.UUID, conn); ok && !conn.IsAdmin {
 		m.SendConnect(conn.UUID)
 	}
 
@@ -57,8 +72,10 @@ func (m *Manager) AddConnection(conn *connection.Connection) (ok bool) {
 
 func (m *Manager) CloseConnection(conn *connection.Connection) (ok bool) {
 	if ok = m.storage.Remove(conn.UUID); ok {
+		if !conn.IsAdmin {
+			m.SendDisconnect(conn.UUID)
+		}
 		conn.Close()
-		m.SendDisconnect(conn.UUID)
 	}
 
 	return ok
@@ -122,7 +139,7 @@ func (m *Manager) HandleMessage(msg string) {
 			}
 		}
 	case operation.OFFER:
-		if conn, ok := m.storage.Get(op.Target); !ok {
+		if conn, ok := m.storage.Get(op.Target); !ok || conn.IsAdmin {
 			m.SendError(op.Sender, operation.USER_NOTFOUND, "User not found")
 		} else {
 			if conn.Locked {
@@ -132,7 +149,7 @@ func (m *Manager) HandleMessage(msg string) {
 			}
 		}
 	case operation.ANSWER:
-		if conn, ok := m.storage.Get(op.Target); !ok {
+		if conn, ok := m.storage.Get(op.Target); !ok || conn.IsAdmin {
 			m.SendError(op.Sender, operation.USER_NOTFOUND, "User not found")
 		} else {
 			if conn.Locked {
@@ -142,7 +159,7 @@ func (m *Manager) HandleMessage(msg string) {
 			}
 		}
 	case operation.CANDIDATE:
-		if _, ok := m.storage.Get(op.Target); !ok {
+		if conn, ok := m.storage.Get(op.Target); !ok || conn.IsAdmin {
 			m.SendError(op.Sender, operation.USER_NOTFOUND, "User not found")
 		} else {
 			m.SendCandidate(op.Sender, op.Target, op.Candidate)

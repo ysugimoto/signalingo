@@ -1,4 +1,4 @@
 .PHONY: static
 
 static:
-	./bin/go-bindata --pkg=env -o ./env/static.go ./conf
+	./bin/go-bindata --pkg=static -o ./static/asset.go ./etc ./public

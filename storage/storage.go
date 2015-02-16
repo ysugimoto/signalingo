@@ -10,4 +10,5 @@ type Storage interface {
 	Remove(key string) bool
 	Get(key string) (*connection.Connection, bool)
 	GetAll() []*connection.Connection
+	Purge()
 }

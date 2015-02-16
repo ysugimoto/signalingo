@@ -1,0 +1,73 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Signaling Test</title>
+        <style type="text/css">
+            .wrapper {
+                height: 400px;
+                padding: 20px;
+                overflow: auto;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="wrapper"></div>
+        <button id="connect">Connect</button>
+        <button id="disconnect">Disconnect</button>
+        <p>
+        <input type="text" id="talk"><button id="speak">Send</button>
+        </p>
+
+        <script type="text/javascript">
+            var connect = document.getElementById("connect");
+            var disconnect = document.getElementById("disconnect");
+            var send = document.getElementById("speak");
+            var talk = document.getElementById("talk");
+            var wrapper = document.querySelector(".wrapper");
+
+            var ws;
+
+            connect.addEventListener("click", function() {
+                ws = new WebSocket("ws://localhost:8888/signaling?foo=bar&username=anonymous");
+                ws.onopen = function() {
+                    log("Connected.");
+                };
+                ws.onclose = function() {
+                    log("Disconnected.");
+                };
+                ws.onmessage = function(evt) {
+                    log("Message received: " + evt.data);
+                };
+            });
+
+            disconnect.addEventListener("click", function() {
+                if ( !ws ) {
+                    log("Not connected.");
+                    return;
+                }
+
+                log("Connected Close.");
+                ws.close();
+                ws = null;
+            });
+
+            send.addEventListener("click", function() {
+                if ( !ws ) {
+                    log("Not connected.");
+                    return;
+                }
+
+                log("Send message: " + talk.value);
+                ws.send(talk.value);
+            });
+
+            function log(message) {
+                var p = document.createElement("p");
+                p.textContent = message;
+
+                wrapper.appendChild(p);
+            }
+        </script>
+    </body>
+</html>

@@ -49,6 +49,14 @@ func Info(message string) {
 	log.Printf("[%s] %s", logLevelStr, message)
 }
 
+func Infof(format string, params ...interface{}) {
+	if logLevel < 1 {
+		return
+	}
+
+	log.Printf("[Info] "+format, params...)
+}
+
 func Warn(message string) {
 	if logLevel < 2 {
 		return
@@ -57,12 +65,28 @@ func Warn(message string) {
 	log.Printf("[%s] %s", logLevelStr, message)
 }
 
+func Warnf(format string, params ...interface{}) {
+	if logLevel < 1 {
+		return
+	}
+
+	log.Printf("[Warning] "+format, params...)
+}
+
 func Fatal(message string) {
 	if logLevel < 3 {
 		return
 	}
 
 	log.Printf("[%s] %s", logLevelStr, message)
+}
+
+func Fatalf(format string, params ...interface{}) {
+	if logLevel < 1 {
+		return
+	}
+
+	log.Printf("[Fatal] "+format, params...)
 }
 
 func Write(message string) {

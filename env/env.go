@@ -3,6 +3,8 @@ package env
 import (
 	"fmt"
 	"github.com/BurntSushi/toml"
+	"github.com/ysugimoto/go-cliargs"
+	"github.com/ysugimoto/signalingo/static"
 	"os"
 )
 
@@ -42,9 +44,27 @@ type RedisEnv struct {
 	Port int    `toml:"port"`
 }
 
+func mergeEnv(env *Env) Env {
+	args := cliarg.NewArguments()
+	args.Alias("h", "host", env.Server.Host)
+	args.Alias("p", "port", env.Server.Port)
+	args.Alias("e", "endpoint", env.Server.Endpoint)
+	args.Parse()
+
+	host, _ := args.GetOptionAsString("host")
+	port, _ := args.GetOptionAsInt("port")
+	endpoint, _ := args.GetOptionAsString("endpoint")
+
+	env.Server.Host = host
+	env.Server.Port = port
+	env.Server.Endpoint = endpoint
+
+	return *env
+}
+
 func InitEnv(path string) Env {
 	var env Env
-	defaultConf, _ := Asset("conf/env.conf")
+	defaultConf, _ := static.Asset("etc/env.conf")
 	toml.Decode(string(defaultConf), &env)
 
 	if _, err := os.Stat(path); err == nil {
@@ -53,6 +73,5 @@ func InitEnv(path string) Env {
 		}
 	}
 
-	//fmt.Printf("%v\n", env)
-	return env
+	return mergeEnv(&env)
 }

@@ -8,32 +8,34 @@ import (
 	"github.com/ysugimoto/signalingo/logger"
 	"github.com/ysugimoto/signalingo/operation"
 	"golang.org/x/net/websocket"
-	"log"
 	"net/http"
 )
 
 var manager *Manager
 
 func Listen(env env.Env) {
-	initLog(env)
-	manager = NewManager(env)
-	http.Handle(env.Server.Endpoint, createWebSocketHandler(env))
-	url := fmt.Sprintf("%s:%d", env.Server.Host, env.Server.Port)
-	logger.Info(fmt.Sprintf("Signaling server started on \"%s\"\n", url))
+	url := initHandler(env)
 	if err := http.ListenAndServe(url, nil); err != nil {
 		panic(fmt.Sprintf("%v", err))
 	}
 }
 
 func ListenTLS(env env.Env) {
-	initLog(env)
-	manager = NewManager(env)
-	http.Handle(env.Server.Endpoint, createWebSocketHandler(env))
-	url := fmt.Sprintf("%s:%d", env.Server.Host, env.Server.Port)
-	logger.Info(fmt.Sprintf("Signaling server started on \"%s\"\n", url))
+	url := initHandler(env)
 	if err := http.ListenAndServeTLS(url, env.Server.Cert, env.Server.Key, nil); err != nil {
 		panic(fmt.Sprintf("%v", err))
 	}
+}
+
+func initHandler(env env.Env) (url string) {
+	initLog(env)
+	manager = NewManager(env)
+	http.Handle(env.Server.Endpoint, createWebSocketHandler(env, false))
+	http.Handle("/manage", createWebSocketHandler(env, true))
+	url = fmt.Sprintf("%s:%d", env.Server.Host, env.Server.Port)
+	logger.Infof("Signaling server started on \"%s\"\n", url)
+
+	return
 }
 
 func initLog(env env.Env) {
@@ -43,34 +45,40 @@ func initLog(env env.Env) {
 	}
 }
 
-func createWebSocketHandler(env env.Env) websocket.Handler {
+func GracefulShutdown() {
+	logger.Info("Signal received, graceful shutdown")
+	if msg, err := operation.NewShutdownMessage(); err == nil {
+		manager.Broadcast(msg)
+	}
+	manager.Purge()
+}
+
+func createWebSocketHandler(env env.Env, admin bool) websocket.Handler {
 	return websocket.Handler(func(ws *websocket.Conn) {
-		client := connection.NewConnection(ws)
+		client := connection.NewConnection(ws, admin)
 
 		// Handshake message
 		if msg, err := operation.NewHandshakeMessage(client.UUID, manager.GetAllUsers()); err == nil {
 
-			// Does need hook?
+			var resp int
+			// Do we need hook?
 			if env.Hook.Url == "" {
-				if err := client.Send(msg); err != nil {
-					log.Println("Handshake send failed")
-				} else {
-					log.Printf("UUID: %s handshake", client.UUID)
-				}
+				resp = 0
 			} else {
 				hook := hooks.NewWebHook(env.Hook.Url, client.Extra)
 				hook.Run()
-				resp := <-hook.Resp
-				if resp == 0 {
-					if err := client.Send(msg); err != nil {
-						log.Println("Handshake send failed")
-					} else {
-						log.Printf("UUID: %s handshake", client.UUID)
-					}
+				resp = <-hook.Resp
+			}
+
+			if resp == 0 {
+				if err := client.Send(msg); err != nil {
+					logger.Fatal("Handshake send failed")
 				} else {
-					client.Close()
-					return
+					logger.Infof("UUID: %s handshake", client.UUID)
 				}
+			} else {
+				client.Close()
+				return
 			}
 		}
 
@@ -87,10 +95,9 @@ func createWebSocketHandler(env env.Env) websocket.Handler {
 			if msg, err := client.Receive(); err != nil {
 				break
 			} else {
-				log.Printf("[WebSocket] message: %s\n", msg)
+				logger.Infof("WebSocket receive message: %s\n", msg)
 				manager.HandleMessage(msg)
 			}
 		}
-
 	})
 }
